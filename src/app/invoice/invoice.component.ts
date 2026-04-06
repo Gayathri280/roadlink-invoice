@@ -80,6 +80,10 @@ export class InvoiceComponent implements OnInit {
       .catch(err => console.error('Failed to save invoice:', err));
   }
 
+  previewPDF(): void {
+    this.pdfService.previewInvoice(this.invoice);
+  }
+
   resetForm(): void {
     this.invoice = this.emptyInvoice();
   }

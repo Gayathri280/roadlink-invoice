@@ -50,6 +50,7 @@ import { PdfService } from '../invoice/pdf.service';
               <td>₹ {{ inv.grandTotal | number:'1.2-2' }}</td>
               <td>{{ inv.savedAt | date:'dd/MM/yyyy, h:mm a' }}</td>
               <td class="actions">
+                <button class="btn-preview" (click)="preview(inv)" title="Preview PDF">👁</button>
                 <button class="btn-download" (click)="redownload(inv)">Download PDF</button>
                 <button class="btn-delete" (click)="delete(inv)">Delete</button>
               </td>
@@ -109,6 +110,11 @@ import { PdfService } from '../invoice/pdf.service';
     .inv-table tr:hover td { background: #f5f7ff; }
 
     .actions { display: flex; gap: 8px; }
+    .btn-preview {
+      background: #388e3c; color: #fff; border: none;
+      padding: 5px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;
+    }
+    .btn-preview:hover { background: #2e7d32; }
     .btn-download {
       background: #1a237e; color: #fff; border: none;
       padding: 5px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;
@@ -154,6 +160,10 @@ export class HistoryComponent implements OnInit {
 
   redownload(inv: SavedInvoice): void {
     this.pdfService.generateInvoice(inv.data);
+  }
+
+  preview(inv: SavedInvoice): void {
+    this.pdfService.previewInvoice(inv.data);
   }
 
   delete(inv: SavedInvoice): void {

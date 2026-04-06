@@ -8,9 +8,19 @@ import { InvoiceData, InvoiceItem } from '../invoice/invoice.model';
 export class PdfService {
 
   async generateInvoice(data: InvoiceData): Promise<void> {
-    // Fetch the real logo PNG as base64
     const logoDataUri = await this.loadImageAsDataUri('assets/logo.png');
+    const doc = await this.buildDoc(data, logoDataUri);
+    doc.save(`RoadLink_Invoice_${data.invoiceNo || 'draft'}.pdf`);
+  }
 
+  async previewInvoice(data: InvoiceData): Promise<void> {
+    const logoDataUri = await this.loadImageAsDataUri('assets/logo.png');
+    const doc = await this.buildDoc(data, logoDataUri);
+    const blobUrl = doc.output('bloburl');
+    window.open(blobUrl as unknown as string, '_blank');
+  }
+
+  private async buildDoc(data: InvoiceData, logoDataUri: string): Promise<jsPDF> {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
     const pW = 210;
@@ -24,18 +34,18 @@ export class PdfService {
 
     // ─── HEADER ROW (height 30mm) ────────────────────────────────────
     // GST top-left
-    doc.setFontSize(8);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text(`GST ${data.companyGST || '33BEEPN3956H1ZF'}`, m + 2, m + 5);
 
     // Mobile & Email top-right
-    doc.setFontSize(8);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('Mobile : 9994919189 / 7397619189', pW - m - 2, m + 5, { align: 'right' });
     doc.text('E-Mail : roadlinkcargoscbe@gmail.com', pW - m - 2, m + 10, { align: 'right' });
 
     // INVOICE title
-    doc.setFontSize(11);
+    doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
     doc.text('INVOICE', pW / 2, m + 6, { align: 'center' });
 
@@ -44,7 +54,7 @@ export class PdfService {
 
     // Tagline & address
     doc.setFont('helvetica', 'bolditalic');
-    doc.setFontSize(8.5);
+    doc.setFontSize(10.5);
     doc.text('We carry your goods & Trust', pW / 2, m + 26, { align: 'center' });
     doc.setFont('helvetica', 'bold');
     doc.text('6, Viswasapuram, Saravanampatti post, Coimbatore - 641035', pW / 2, m + 31, { align: 'center' });
@@ -56,7 +66,7 @@ export class PdfService {
     // ─── TO / INVOICE-NO + GSTIN ROW ────────────────────────────────
     const infoBoxW = 58;
     const infoX    = m + iW - infoBoxW;
-    const toRowEnd = hdrBottom + 26;   // increased for Vehicle No. breathing room
+    const toRowEnd = hdrBottom + 32;   // increased for Vehicle No. breathing room
 
     // Single bottom line — vertical divider & horizontal border all meet here
     const gstinBottom = toRowEnd;  // no separate GSTIN row; GSTIN is inside left panel
@@ -66,17 +76,18 @@ export class PdfService {
     doc.line(infoX, hdrBottom, infoX, toRowEnd);
 
     // Left panel: "To" label + name at top
-    doc.setFontSize(9);
+    doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
     doc.text('To', m + 2, hdrBottom + 6);
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10.5);
     const toNameLines = (data.toName || '').split('\n');
     toNameLines.forEach((line, idx) => {
       doc.text(line, m + 9, hdrBottom + 6 + idx * 4.5);
     });
 
     // Left panel: GSTIN at bottom, aligned with Vehicle No. row
-    doc.setFontSize(9);
+    doc.setFontSize(10.5);
     doc.setFont('helvetica', 'normal');
     doc.text(`GSTIN : ${data.toGSTIN || ''}`, m + 2, toRowEnd - 3);
 
@@ -86,10 +97,10 @@ export class PdfService {
 
     // Right box — Row 1: INVOICE No. label (bold, left) + value
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(10.5);
     doc.text('INVOICE No.', infoX + 2, hdrBottom + 6);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
+    doc.setFontSize(10.5);
     doc.text(data.invoiceNo || '', infoX + 28, hdrBottom + 6);
 
     // Divider after row 1
@@ -111,17 +122,17 @@ export class PdfService {
 
     // ─── FROM / TO ROW (height 18mm) ────────────────────────────────
     const midX = m + iW / 2;
-    const fromToEnd = gstinBottom + 18;
+    const fromToEnd = gstinBottom + 28;
     doc.setLineWidth(0.3);
     doc.line(midX, gstinBottom, midX, fromToEnd);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(13);
     doc.text('From', m + 2, gstinBottom + 5);
     doc.text('To', midX + 2, gstinBottom + 5);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
+    doc.setFontSize(10.5);
     const fromLines = (data.fromAddress || '').split('\n').flatMap(l => doc.splitTextToSize(l, iW / 2 - 6));
     doc.text(fromLines, m + 2, gstinBottom + 10);
     const toLines = (data.toAddress || '').split('\n').flatMap(l => doc.splitTextToSize(l, iW / 2 - 6));
@@ -132,8 +143,8 @@ export class PdfService {
 
     // ─── TABLE HEADER ────────────────────────────────────────────────
     // Column widths (total = 190)
-    const cSn   = 12;   // S.No.
-    const cDesc = 118;  // Description (wider)
+    const cSn   = 16;   // S.No.
+    const cDesc = 114;  // Description (wider)
     const cQty  = 15;   // Qty
     const cRate = 22;   // Rate
     const cAmt  = 23;   // Amount
@@ -145,7 +156,7 @@ export class PdfService {
     doc.rect(m, thY, iW, thH, 'F');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(13);
     const tcy = thY + 5.5;
     doc.text('S.No.',      m + 2,                             tcy);
     doc.text('Description', m + cSn + 2,                     tcy);
@@ -173,7 +184,7 @@ export class PdfService {
     for (let i = 0; i < maxRows; i++) {
       const item: InvoiceItem | undefined = items[i];
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
+      doc.setFontSize(10.5);
 
       if (item) {
         doc.text(`${i + 1}`, m + 2, curY + 5.5);
@@ -183,7 +194,7 @@ export class PdfService {
         doc.text(String(item.rate ?? ''), m + cSn + cDesc + cQty + 2, curY + 5.5);
         const amt = (Number(item.qty) || 0) * (Number(item.rate) || 0);
         doc.setFont('helvetica', 'bold');
-        doc.text(amt > 0 ? amt.toFixed(2) : '', m + iW - 2, curY + 5.5, { align: 'right' });
+        doc.text(amt > 0 ? this.formatINR(amt) : '', m + iW - 2, curY + 5.5, { align: 'right' });
       }
 
       curY += rowH;
@@ -214,8 +225,8 @@ export class PdfService {
 
     // ─── HAMALI/HALT + TOTAL rows (right cols, above bank section) ───
     const aboveRows: { label: string; value: string; bold?: boolean }[] = [
-      { label: 'Hamali/Halt', value: hamali > 0 ? hamali.toFixed(2) : '' },
-      { label: 'TOTAL',       value: subTotal > 0 ? subTotal.toFixed(2) : '', bold: true },
+      { label: 'Hamali/Halt', value: hamali > 0 ? this.formatINR(hamali) : '' },
+      { label: 'TOTAL',       value: subTotal > 0 ? this.formatINR(subTotal) : '', bold: true },
     ];
 
     // Extend column dividers through these 2 rows — NO Qty/Rate divider here
@@ -232,7 +243,7 @@ export class PdfService {
     let sY = tableBodyEnd;
     for (const row of aboveRows) {
       doc.setFont('helvetica', row.bold ? 'bold' : 'normal');
-      doc.setFontSize(8.5);
+      doc.setFontSize(10.5);
       doc.text(row.label, sumX + 2, sY + 5.5);
       doc.text(row.value, m + iW - 2, sY + 5.5, { align: 'right' });
       doc.setLineWidth(0.3);
@@ -242,10 +253,10 @@ export class PdfService {
 
     // ─── BANK DETAILS + CSGT/SGST/IGST/GRAND TOTAL side by side ────
     const bankRows: { label: string; value: string; bold?: boolean }[] = [
-      { label: 'CSGT  9 %',  value: csgt > 0 ? csgt.toFixed(2) : '' },
-      { label: 'SGST  9 %',  value: sgst > 0 ? sgst.toFixed(2) : '' },
-      { label: 'IGST  18 %', value: igst > 0 ? igst.toFixed(2) : '' },
-      { label: 'Grand Total',value: grand > 0 ? grand.toFixed(2) : '', bold: true },
+      { label: 'CSGT  9 %',  value: csgt > 0 ? this.formatINR(csgt) : '' },
+      { label: 'SGST  9 %',  value: sgst > 0 ? this.formatINR(sgst) : '' },
+      { label: 'IGST  18 %', value: igst > 0 ? this.formatINR(igst) : '' },
+      { label: 'Grand Total',value: grand > 0 ? this.formatINR(grand) : '', bold: true },
     ];
 
     const footY    = preRowsEndY;
@@ -263,18 +274,20 @@ export class PdfService {
 
     // ── Left: Bank Details ──
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(13);
     doc.text('BANK DETAILS', m + 4, footY + 7);
     doc.setLineWidth(0.4);
     doc.line(m + 4, footY + 8, m + 28.5, footY + 8);
 
-    const bL  = m + 4;
-    const bV  = m + 34;
-    const bR  = m + 72;
-    const bRV = m + 92;
-    doc.setFontSize(8);
+    const bL   = m + 4;
+    const bCol = m + 24;  // colon alignment point
+    const bV   = m + 26;
+    const bR   = m + 72;
+    const bRV  = m + 92;
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Bank Details Name :', bL, footY + 16);
+    doc.text('Name', bL, footY + 16);
+    doc.text(':', bCol, footY + 16);
     doc.setFont('helvetica', 'bold');
     doc.text('Road-Link Cargos', bV, footY + 16);
     doc.setFont('helvetica', 'normal');
@@ -283,7 +296,8 @@ export class PdfService {
     doc.text('50200089082007', bRV, footY + 16);
 
     doc.setFont('helvetica', 'normal');
-    doc.text('Branch           :', bL, footY + 23);
+    doc.text('Branch', bL, footY + 23);
+    doc.text(':', bCol, footY + 23);
     doc.setFont('helvetica', 'bold');
     doc.text('Ramakrishnapuram', bV, footY + 23);
     doc.setFont('helvetica', 'normal');
@@ -292,7 +306,8 @@ export class PdfService {
     doc.text('HDFC0008887', bRV, footY + 23);
 
     doc.setFont('helvetica', 'normal');
-    doc.text('Bank              :', bL, footY + 30);
+    doc.text('Bank', bL, footY + 30);
+    doc.text(':', bCol, footY + 30);
     doc.setFont('helvetica', 'bold');
     doc.text('HDFC BANK', bV, footY + 30);
 
@@ -302,7 +317,7 @@ export class PdfService {
       const row = bankRows[i];
       const isLast = i === bankRows.length - 1;
       doc.setFont('helvetica', row.bold ? 'bold' : 'normal');
-      doc.setFontSize(8.5);
+      doc.setFontSize(10.5);
       doc.text(row.label, bankMidX + 2, rY + 5.5);
       doc.text(row.value, m + iW - 2, rY + 5.5, { align: 'right' });
       // skip bottom line for last row — bankEndY full-width line covers it
@@ -315,17 +330,17 @@ export class PdfService {
 
     // ─── TOTAL IN WORDS + FOR ROAD LINK CARGOS (same row, no divider) ──
     const wordsY    = bankEndY;
-    const wordsEndY = wordsY + 22;
+    const wordsEndY = wordsY + 32;
 
     doc.setLineWidth(0.5);
     doc.line(m, wordsEndY, m + iW, wordsEndY);
     doc.line(bankMidX, wordsY, bankMidX, wordsEndY); // vertical divider restored
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(10.5);
     doc.text('Total Value (in words)', m + 2, wordsY + 6);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(10);
     const wordsStr = grand > 0 ? `INR ${this.numberToWords(grand)} Only` : '';
     const wLines   = doc.splitTextToSize(wordsStr, bankMidX - m - 6);
     doc.text(wLines, m + 2, wordsY + 12);
@@ -333,10 +348,10 @@ export class PdfService {
     // Right side of same row: For Road Link Cargos + Authorised Signatory
     const rightCx = bankMidX + (m + iW - bankMidX) / 2;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(13);
     doc.text('For Road Link Cargos', rightCx, wordsY + 6, { align: 'center' }); // same level as Total Value label
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
+    doc.setFontSize(10.5);
     doc.text('Authorised Signatory', rightCx, wordsEndY - 3, { align: 'center' });
 
     // Close outer border bottom exactly at last row
@@ -347,7 +362,11 @@ export class PdfService {
     doc.line(m,      m, m,      wordsEndY);
     doc.line(m + iW, m, m + iW, wordsEndY);
 
-    doc.save(`RoadLink_Invoice_${data.invoiceNo || 'draft'}.pdf`);
+    return doc;
+  }
+
+  private formatINR(value: number): string {
+    return value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   private loadImageAsDataUri(url: string): Promise<string> {
