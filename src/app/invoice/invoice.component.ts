@@ -16,9 +16,17 @@ import { FirebaseService } from '../firebase/firebase.service';
 export class InvoiceComponent implements OnInit {
   invoice: InvoiceData = this.emptyInvoice();
   allCustomerNames: string[] = [];
-  customerProfiles: { name: string; gstin: string }[] = [];
+  customerProfiles: { name: string; gstin: string; fromAddress: string; toAddress: string }[] = [];
   nameSuggestions: string[] = [];
   showSuggestions = false;
+
+  allFromAddresses: string[] = [];
+  fromSuggestions: string[] = [];
+  showFromSuggestions = false;
+
+  allToAddresses: string[] = [];
+  toSuggestions: string[] = [];
+  showToSuggestions = false;
 
   get subtotal(): number {
     return this.invoice.items.reduce(
@@ -65,6 +73,8 @@ export class InvoiceComponent implements OnInit {
       .then(profiles => {
         this.customerProfiles = profiles;
         this.allCustomerNames = profiles.map(p => p.name);
+        this.allFromAddresses = [...new Set(profiles.map(p => p.fromAddress).filter(a => a.trim()))];
+        this.allToAddresses = [...new Set(profiles.map(p => p.toAddress).filter(a => a.trim()))];
       })
       .catch(() => {});
   }
@@ -85,6 +95,38 @@ export class InvoiceComponent implements OnInit {
 
   hideSuggestions(): void {
     setTimeout(() => this.showSuggestions = false, 150);
+  }
+
+  onFromInput(): void {
+    const val = (this.invoice.fromAddress || '').toLowerCase().trim();
+    if (!val) { this.fromSuggestions = []; this.showFromSuggestions = false; return; }
+    this.fromSuggestions = this.allFromAddresses.filter(a => a.toLowerCase().includes(val));
+    this.showFromSuggestions = this.fromSuggestions.length > 0;
+  }
+
+  selectFrom(addr: string): void {
+    this.invoice.fromAddress = addr;
+    this.showFromSuggestions = false;
+  }
+
+  hideFromSuggestions(): void {
+    setTimeout(() => this.showFromSuggestions = false, 150);
+  }
+
+  onToAddressInput(): void {
+    const val = (this.invoice.toAddress || '').toLowerCase().trim();
+    if (!val) { this.toSuggestions = []; this.showToSuggestions = false; return; }
+    this.toSuggestions = this.allToAddresses.filter(a => a.toLowerCase().includes(val));
+    this.showToSuggestions = this.toSuggestions.length > 0;
+  }
+
+  selectToAddress(addr: string): void {
+    this.invoice.toAddress = addr;
+    this.showToSuggestions = false;
+  }
+
+  hideToSuggestions(): void {
+    setTimeout(() => this.showToSuggestions = false, 150);
   }
 
   itemAmount(item: InvoiceItem): number {

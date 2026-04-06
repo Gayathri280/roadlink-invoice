@@ -53,13 +53,21 @@
         <label>Customer GSTIN</label>
         <input type="text" [(ngModel)]="invoice.toGSTIN" placeholder="Customer GST number" />
       </div>
-      <div class="form-group">
+      <div class="form-group" style="position:relative;">
         <label>From Address (Origin)</label>
-        <textarea [(ngModel)]="invoice.fromAddress" placeholder="Origin address" rows="3" style="resize:vertical;"></textarea>
+        <textarea [(ngModel)]="invoice.fromAddress" placeholder="Origin address" rows="3" style="resize:vertical;"
+          (input)="onFromInput()" (blur)="hideFromSuggestions()"></textarea>
+        <ul class="name-suggestions" *ngIf="showFromSuggestions">
+          <li *ngFor="let s of fromSuggestions" (mousedown)="selectFrom(s)">{{ s }}</li>
+        </ul>
       </div>
-      <div class="form-group">
+      <div class="form-group" style="position:relative;">
         <label>To Address (Destination)</label>
-        <textarea [(ngModel)]="invoice.toAddress" placeholder="Destination address" rows="3" style="resize:vertical;"></textarea>
+        <textarea [(ngModel)]="invoice.toAddress" placeholder="Destination address" rows="3" style="resize:vertical;"
+          (input)="onToAddressInput()" (blur)="hideToSuggestions()"></textarea>
+        <ul class="name-suggestions" *ngIf="showToSuggestions">
+          <li *ngFor="let s of toSuggestions" (mousedown)="selectToAddress(s)">{{ s }}</li>
+        </ul>
       </div>
     </div>
   </div>
