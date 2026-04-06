@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { FirebaseService, SavedInvoice } from '../firebase/firebase.service';
 import { PdfService } from '../invoice/pdf.service';
@@ -7,7 +8,7 @@ import { PdfService } from '../invoice/pdf.service';
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="history-container">
       <div class="history-header">
@@ -20,12 +21,15 @@ import { PdfService } from '../invoice/pdf.service';
       </div>
 
       <div class="history-body">
-        <h2>Invoice History</h2>
+        <div class="history-title-row">
+          <h2>Invoice History</h2>
+          <input class="search-input" type="text" [(ngModel)]="searchQuery" placeholder="Search by invoice number..." />
+        </div>
 
         <div *ngIf="loading" class="state-msg">Loading...</div>
-        <div *ngIf="!loading && invoices.length === 0" class="state-msg">No invoices saved yet.</div>
+        <div *ngIf="!loading && filteredInvoices.length === 0" class="state-msg">No invoices found.</div>
 
-        <table *ngIf="!loading && invoices.length > 0" class="inv-table">
+        <table *ngIf="!loading && filteredInvoices.length > 0" class="inv-table">
           <thead>
             <tr>
               <th>#</th>
@@ -38,7 +42,7 @@ import { PdfService } from '../invoice/pdf.service';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let inv of invoices; let i = index">
+            <tr *ngFor="let inv of filteredInvoices; let i = index">
               <td>{{ i + 1 }}</td>
               <td>{{ inv.invoiceNo || '—' }}</td>
               <td>{{ inv.invoiceDate || '—' }}</td>
@@ -74,7 +78,17 @@ import { PdfService } from '../invoice/pdf.service';
     .btn-new:hover { background: #d4920a; }
 
     .history-body { padding: 24px; }
-    h2 { margin-bottom: 20px; color: #1a237e; font-size: 20px; }
+    .history-title-row {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 20px;
+    }
+    h2 { margin: 0; color: #1a237e; font-size: 20px; }
+    .search-input {
+      padding: 8px 14px; border: 1px solid #ccc;
+      border-radius: 6px; font-size: 14px; width: 260px;
+      outline: none;
+    }
+    .search-input:focus { border-color: #1a237e; }
 
     .state-msg { color: #888; font-size: 15px; text-align: center; margin-top: 40px; }
 
@@ -110,6 +124,13 @@ import { PdfService } from '../invoice/pdf.service';
 export class HistoryComponent implements OnInit {
   invoices: SavedInvoice[] = [];
   loading = true;
+  searchQuery = '';
+
+  get filteredInvoices(): SavedInvoice[] {
+    const q = this.searchQuery.trim().toLowerCase();
+    if (!q) return this.invoices;
+    return this.invoices.filter(inv => (inv.invoiceNo || '').toLowerCase().includes(q));
+  }
 
   constructor(
     private firebaseService: FirebaseService,
