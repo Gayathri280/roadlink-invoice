@@ -15,6 +15,10 @@ import { FirebaseService } from '../firebase/firebase.service';
 })
 export class InvoiceComponent implements OnInit {
   invoice: InvoiceData = this.emptyInvoice();
+  allCustomerNames: string[] = [];
+  customerProfiles: { name: string; gstin: string }[] = [];
+  nameSuggestions: string[] = [];
+  showSuggestions = false;
 
   get subtotal(): number {
     return this.invoice.items.reduce(
@@ -55,9 +59,32 @@ export class InvoiceComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Set today's date as default
     const today = new Date();
     this.invoice.invoiceDate = today.toISOString().split('T')[0];
+    this.firebaseService.getCustomerProfiles()
+      .then(profiles => {
+        this.customerProfiles = profiles;
+        this.allCustomerNames = profiles.map(p => p.name);
+      })
+      .catch(() => {});
+  }
+
+  onNameInput(): void {
+    const val = (this.invoice.toName || '').toLowerCase().trim();
+    if (!val) { this.nameSuggestions = []; this.showSuggestions = false; return; }
+    this.nameSuggestions = this.allCustomerNames.filter(n => n.toLowerCase().includes(val));
+    this.showSuggestions = this.nameSuggestions.length > 0;
+  }
+
+  selectName(name: string): void {
+    this.invoice.toName = name;
+    const profile = this.customerProfiles.find(p => p.name === name);
+    if (profile?.gstin) this.invoice.toGSTIN = profile.gstin;
+    this.showSuggestions = false;
+  }
+
+  hideSuggestions(): void {
+    setTimeout(() => this.showSuggestions = false, 150);
   }
 
   itemAmount(item: InvoiceItem): number {

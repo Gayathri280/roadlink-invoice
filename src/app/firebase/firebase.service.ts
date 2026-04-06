@@ -59,4 +59,23 @@ export class FirebaseService {
     const ref = doc(this.db, 'invoices', id);
     return deleteDoc(ref);
   }
+
+  getCustomerProfiles(): Promise<{ name: string; gstin: string }[]> {
+    const ref = collection(this.db, 'invoices');
+    return new Promise((resolve, reject) => {
+      const unsubscribe = onSnapshot(ref,
+        snapshot => {
+          unsubscribe();
+          const seen = new Map<string, string>();
+          snapshot.docs.forEach(d => {
+            const inv = d.data() as SavedInvoice;
+            const name = (inv.toName || '').trim();
+            if (name && !seen.has(name)) seen.set(name, inv.data?.toGSTIN || '');
+          });
+          resolve(Array.from(seen.entries()).map(([name, gstin]) => ({ name, gstin })));
+        },
+        reject
+      );
+    });
+  }
 }

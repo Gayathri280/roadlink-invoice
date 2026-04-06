@@ -41,9 +41,13 @@
   <div class="form-card">
     <h3>Party Details</h3>
     <div class="form-grid">
-      <div class="form-group">
+      <div class="form-group" style="position:relative;">
         <label>Customer / Consignee Name</label>
-        <textarea [(ngModel)]="invoice.toName" placeholder="Recipient name" rows="3" style="resize:vertical;"></textarea>
+        <textarea [(ngModel)]="invoice.toName" placeholder="Recipient name" rows="3" style="resize:vertical;"
+          (input)="onNameInput()" (blur)="hideSuggestions()"></textarea>
+        <ul class="name-suggestions" *ngIf="showSuggestions">
+          <li *ngFor="let s of nameSuggestions" (mousedown)="selectName(s)">{{ s }}</li>
+        </ul>
       </div>
       <div class="form-group">
         <label>Customer GSTIN</label>
