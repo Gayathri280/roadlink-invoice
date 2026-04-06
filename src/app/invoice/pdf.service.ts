@@ -118,9 +118,9 @@ export class PdfService {
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    const fromLines = doc.splitTextToSize(data.fromAddress || '', iW / 2 - 6);
+    const fromLines = (data.fromAddress || '').split('\n').flatMap(l => doc.splitTextToSize(l, iW / 2 - 6));
     doc.text(fromLines, m + 2, gstinBottom + 10);
-    const toLines = doc.splitTextToSize(data.toAddress || '', iW / 2 - 6);
+    const toLines = (data.toAddress || '').split('\n').flatMap(l => doc.splitTextToSize(l, iW / 2 - 6));
     doc.text(toLines, midX + 2, gstinBottom + 10);
 
     doc.setLineWidth(0.5);
