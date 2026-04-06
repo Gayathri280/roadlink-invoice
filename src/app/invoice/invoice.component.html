@@ -41,7 +41,7 @@
     <div class="form-grid">
       <div class="form-group">
         <label>Customer / Consignee Name</label>
-        <input type="text" [(ngModel)]="invoice.toName" placeholder="Recipient name" />
+        <textarea [(ngModel)]="invoice.toName" placeholder="Recipient name" rows="3" style="resize:vertical;"></textarea>
       </div>
       <div class="form-group">
         <label>Customer GSTIN</label>

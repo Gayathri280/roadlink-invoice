@@ -68,7 +68,10 @@ export class PdfService {
     doc.setFont('helvetica', 'bold');
     doc.text('To', m + 2, hdrBottom + 6);
     doc.setFont('helvetica', 'normal');
-    doc.text(data.toName || '', m + 9, hdrBottom + 6);
+    const toNameLines = (data.toName || '').split('\n');
+    toNameLines.forEach((line, idx) => {
+      doc.text(line, m + 9, hdrBottom + 6 + idx * 4.5);
+    });
 
     // Left panel: GSTIN at bottom, aligned with Vehicle No. row
     doc.setFontSize(9);
