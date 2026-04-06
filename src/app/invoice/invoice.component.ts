@@ -101,7 +101,7 @@ export class InvoiceComponent implements OnInit {
       toName: '',
       toAddress: '',
       toGSTIN: '',
-      fromAddress: '6, Viswasapuram, Saravanampatti post, Coimbatore -35',
+      fromAddress: '6, Viswasapuram, Saravanampatti post, Coimbatore -641035',
       companyGST: '33BEEPN3956H1ZF',
       items: [
         { description: '', qty: null, rate: null, amount: 0 }

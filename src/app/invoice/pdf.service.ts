@@ -25,12 +25,13 @@ export class PdfService {
     // ─── HEADER ROW (height 30mm) ────────────────────────────────────
     // GST top-left
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.text(`GST ${data.companyGST || '33BEEPN3956H1ZF'}`, m + 2, m + 5);
 
     // Mobile & Email top-right
     doc.setFontSize(8);
-    doc.text('Mobile : 9994919189', pW - m - 2, m + 5, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.text('Mobile : 9994919189 / 7397619189', pW - m - 2, m + 5, { align: 'right' });
     doc.text('E-Mail : roadlinkcargoscbe@gmail.com', pW - m - 2, m + 10, { align: 'right' });
 
     // INVOICE title
@@ -42,10 +43,11 @@ export class PdfService {
     doc.addImage(logoDataUri, 'PNG', (pW - 52) / 2, m + 7, 52, 16);
 
     // Tagline & address
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bolditalic');
     doc.setFontSize(8.5);
     doc.text('We carry your goods & Trust', pW / 2, m + 26, { align: 'center' });
-    doc.text('6, Viswasapuram, Saravanampatti post, Coimbatore -35', pW / 2, m + 31, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.text('6, Viswasapuram, Saravanampatti post, Coimbatore - 641035', pW / 2, m + 31, { align: 'center' });
 
     const hdrBottom = m + 34;
     doc.setLineWidth(0.5);
@@ -96,7 +98,9 @@ export class PdfService {
 
     // Row 2: Date
     doc.text('Date :', infoX + 2, hdrBottom + 15);
-    doc.text(data.invoiceDate || '', infoX + 18, hdrBottom + 15);
+    const rawDate = data.invoiceDate || '';
+    const fmtDate = rawDate.includes('-') ? rawDate.split('-').reverse().join('/') : rawDate;
+    doc.text(fmtDate, infoX + 18, hdrBottom + 15);
 
     // Divider after row 2
     doc.line(infoX, hdrBottom + 18, m + iW, hdrBottom + 18);
@@ -173,8 +177,8 @@ export class PdfService {
 
       if (item) {
         doc.text(`${i + 1}`, m + 2, curY + 5.5);
-        const desc0 = doc.splitTextToSize(item.description || '', cDesc - 4)[0] || '';
-        doc.text(desc0, m + cSn + 2, curY + 5.5);
+        const descLines = (item.description || '').split('\n').flatMap(l => doc.splitTextToSize(l, cDesc - 4));
+        descLines.forEach((line, li) => doc.text(line, m + cSn + 2, curY + 5.5 + li * 4));
         doc.text(String(item.qty ?? ''), m + cSn + cDesc + 2, curY + 5.5);
         doc.text(String(item.rate ?? ''), m + cSn + cDesc + cQty + 2, curY + 5.5);
         const amt = (Number(item.qty) || 0) * (Number(item.rate) || 0);
@@ -262,7 +266,7 @@ export class PdfService {
     doc.setFontSize(9);
     doc.text('BANK DETAILS', m + 4, footY + 7);
     doc.setLineWidth(0.4);
-    doc.line(m + 4, footY + 8, m + 36, footY + 8);
+    doc.line(m + 4, footY + 8, m + 28.5, footY + 8);
 
     const bL  = m + 4;
     const bV  = m + 34;

@@ -23,7 +23,7 @@ import { PdfService } from '../invoice/pdf.service';
       <div class="history-body">
         <div class="history-title-row">
           <h2>Invoice History</h2>
-          <input class="search-input" type="text" [(ngModel)]="searchQuery" placeholder="Search by invoice number..." />
+          <input class="search-input" type="text" [(ngModel)]="searchQuery" placeholder="Search by invoice number or customer..." />
         </div>
 
         <div *ngIf="loading" class="state-msg">Loading...</div>
@@ -129,7 +129,10 @@ export class HistoryComponent implements OnInit {
   get filteredInvoices(): SavedInvoice[] {
     const q = this.searchQuery.trim().toLowerCase();
     if (!q) return this.invoices;
-    return this.invoices.filter(inv => (inv.invoiceNo || '').toLowerCase().includes(q));
+    return this.invoices.filter(inv =>
+      (inv.invoiceNo || '').toLowerCase().includes(q) ||
+      (inv.toName || '').toLowerCase().includes(q)
+    );
   }
 
   constructor(
