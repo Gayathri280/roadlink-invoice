@@ -119,8 +119,8 @@ export class HistoryComponent implements OnInit {
 
   ngOnInit(): void {
     this.firebaseService.getInvoices().subscribe({
-      next: (data) => { this.invoices = data; this.loading = false; },
-      error: () => { this.loading = false; }
+      next: (data) => { console.log('Invoices loaded:', data); this.invoices = data; this.loading = false; },
+      error: (err) => { console.error('Error loading invoices:', err); this.loading = false; }
     });
   }
 
