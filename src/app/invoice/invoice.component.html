@@ -1,0 +1,176 @@
+<!-- App Header -->
+<header class="app-header">
+  <div class="logo">
+    ROADLINK CARGOS
+    <span>Invoice Management System</span>
+  </div>
+  <button class="btn-logout" (click)="logout()">Logout</button>
+</header>
+
+<div class="invoice-page">
+  <div class="page-title">Generate Invoice</div>
+
+  <!-- Invoice Details -->
+  <div class="form-card">
+    <h3>Invoice Details</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Invoice No.</label>
+        <input type="text" [(ngModel)]="invoice.invoiceNo" placeholder="e.g. INV-001" />
+      </div>
+      <div class="form-group">
+        <label>Invoice Date</label>
+        <input type="date" [(ngModel)]="invoice.invoiceDate" />
+      </div>
+      <div class="form-group">
+        <label>Vehicle No.</label>
+        <input type="text" [(ngModel)]="invoice.vehicleNo" placeholder="e.g. TN 33 AB 1234" />
+      </div>
+      <div class="form-group">
+        <label>Company GST</label>
+        <input type="text" [(ngModel)]="invoice.companyGST" placeholder="33BEEPN3956H1ZF" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Party Details -->
+  <div class="form-card">
+    <h3>Party Details</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Customer / Consignee Name</label>
+        <input type="text" [(ngModel)]="invoice.toName" placeholder="Recipient name" />
+      </div>
+      <div class="form-group">
+        <label>Customer GSTIN</label>
+        <input type="text" [(ngModel)]="invoice.toGSTIN" placeholder="Customer GST number" />
+      </div>
+      <div class="form-group">
+        <label>From Address (Origin)</label>
+        <input type="text" [(ngModel)]="invoice.fromAddress" placeholder="Origin address" />
+      </div>
+      <div class="form-group">
+        <label>To Address (Destination)</label>
+        <input type="text" [(ngModel)]="invoice.toAddress" placeholder="Destination address" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Items -->
+  <div class="form-card">
+    <h3>Items / Services</h3>
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th style="width:50px">S.No.</th>
+          <th>Description</th>
+          <th style="width:90px">Qty.</th>
+          <th style="width:110px">Rate (₹)</th>
+          <th style="width:120px">Amount (₹)</th>
+          <th style="width:70px">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of invoice.items; let i = index">
+          <td style="text-align:center; font-size:13px;">{{ i + 1 }}</td>
+          <td>
+            <input
+              type="text"
+              [(ngModel)]="item.description"
+              [name]="'desc_' + i"
+              placeholder="Description of goods/service"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              [(ngModel)]="item.qty"
+              [name]="'qty_' + i"
+              placeholder="0"
+              min="0"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              [(ngModel)]="item.rate"
+              [name]="'rate_' + i"
+              placeholder="0.00"
+              min="0"
+            />
+          </td>
+          <td class="amount-cell">
+            {{ itemAmount(item) > 0 ? (itemAmount(item) | number:'1.2-2') : '—' }}
+          </td>
+          <td style="text-align:center;">
+            <button class="btn-remove" (click)="removeRow(i)" [disabled]="invoice.items.length === 1">✕</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <button class="btn-add-row" (click)="addRow()">+ Add Row</button>
+
+    <!-- Hamali / Halt -->
+    <div style="margin-top:18px; max-width:340px;">
+      <div class="form-group">
+        <label>Hamali / Halt Charges (₹)</label>
+        <input type="number" [(ngModel)]="invoice.hamaliHalt" name="hamali" placeholder="0.00" min="0" />
+      </div>
+    </div>
+  </div>
+
+  <!-- GST Selection & Summary -->
+  <div class="form-card">
+    <h3>GST Calculation</h3>
+    <div class="form-group" style="max-width:280px; margin-bottom:20px;">
+      <label>GST Type</label>
+      <select [(ngModel)]="invoice.gstType" name="gstType">
+        <option value="igst">IGST (18%) — Inter-state</option>
+        <option value="cgst_sgst">CGST (9%) + SGST (9%) — Intra-state</option>
+      </select>
+    </div>
+
+    <div class="gst-summary">
+      <div class="gst-row">
+        <span class="label">Sub Total</span>
+        <span class="value">₹ {{ subtotal | number:'1.2-2' }}</span>
+      </div>
+      <div class="gst-row">
+        <span class="label">Hamali / Halt</span>
+        <span class="value">₹ {{ hamali | number:'1.2-2' }}</span>
+      </div>
+      <div class="gst-row">
+        <span class="label">Taxable Amount</span>
+        <span class="value">₹ {{ taxableAmount | number:'1.2-2' }}</span>
+      </div>
+      <ng-container *ngIf="invoice.gstType === 'cgst_sgst'">
+        <div class="gst-row">
+          <span class="label">CGST &#64; 9%</span>
+          <span class="value">₹ {{ csgt | number:'1.2-2' }}</span>
+        </div>
+        <div class="gst-row">
+          <span class="label">SGST &#64; 9%</span>
+          <span class="value">₹ {{ sgst | number:'1.2-2' }}</span>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="invoice.gstType === 'igst'">
+        <div class="gst-row">
+          <span class="label">IGST &#64; 18%</span>
+          <span class="value">₹ {{ igst | number:'1.2-2' }}</span>
+        </div>
+      </ng-container>
+      <div class="gst-row total-row">
+        <span class="label">Grand Total</span>
+        <span class="value">₹ {{ grandTotal | number:'1.2-2' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="action-buttons">
+    <button class="btn-reset" (click)="resetForm()">Reset Form</button>
+    <button class="btn-generate" (click)="generatePDF()">
+      ⬇ Generate & Download PDF
+    </button>
+  </div>
+</div>
