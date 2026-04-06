@@ -136,6 +136,28 @@ body {
   display: block;
 }
 
+.app-header .header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-history {
+  background: #F0A500;
+  color: #fff;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-history:hover {
+  background: #d4920a;
+}
+
 .btn-logout {
   background: rgba(255,255,255,0.15);
   color: white;

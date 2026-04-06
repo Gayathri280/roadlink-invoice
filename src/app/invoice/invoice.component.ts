@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { PdfService } from './pdf.service';
 import { InvoiceData, InvoiceItem } from './invoice.model';
+import { FirebaseService } from '../firebase/firebase.service';
 
 @Component({
   selector: 'app-invoice',
@@ -49,7 +50,8 @@ export class InvoiceComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private pdfService: PdfService,
-    private router: Router
+    private router: Router,
+    private firebaseService: FirebaseService
   ) {}
 
   ngOnInit(): void {
@@ -74,6 +76,8 @@ export class InvoiceComponent implements OnInit {
 
   generatePDF(): void {
     this.pdfService.generateInvoice(this.invoice);
+    this.firebaseService.saveInvoice(this.invoice, this.grandTotal)
+      .catch(err => console.error('Failed to save invoice:', err));
   }
 
   resetForm(): void {
@@ -83,6 +87,10 @@ export class InvoiceComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  goToHistory(): void {
+    this.router.navigate(['/history']);
   }
 
   private emptyInvoice(): InvoiceData {
