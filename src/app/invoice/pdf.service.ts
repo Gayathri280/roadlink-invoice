@@ -36,7 +36,7 @@ export class PdfService {
     // GST top-left
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`GST ${data.companyGST || '33BEEPN3956H1ZF'}`, m + 2, m + 5);
+    doc.text(`GSTIN ${data.companyGST || '33BEEPN3956H1ZF'}`, m + 2, m + 5);
 
     // Mobile & Email top-right
     doc.setFontSize(10);
@@ -66,7 +66,7 @@ export class PdfService {
     // ─── TO / INVOICE-NO + GSTIN ROW ────────────────────────────────
     const infoBoxW = 58;
     const infoX    = m + iW - infoBoxW;
-    const toRowEnd = hdrBottom + 32;   // increased for Vehicle No. breathing room
+    const toRowEnd = hdrBottom + 28;   // increased for Vehicle No. breathing room
 
     // Single bottom line — vertical divider & horizontal border all meet here
     const gstinBottom = toRowEnd;  // no separate GSTIN row; GSTIN is inside left panel
@@ -122,7 +122,7 @@ export class PdfService {
 
     // ─── FROM / TO ROW (height 18mm) ────────────────────────────────
     const midX = m + iW / 2;
-    const fromToEnd = gstinBottom + 28;
+    const fromToEnd = gstinBottom + 24;
     doc.setLineWidth(0.3);
     doc.line(midX, gstinBottom, midX, fromToEnd);
 
@@ -175,21 +175,31 @@ export class PdfService {
     doc.setLineWidth(0.5);
     doc.line(m, thY + thH, m + iW, thY + thH);
 
-    // ─── TABLE ROWS (12 rows × 8mm) ─────────────────────────────────
-    const rowH = 8;
+    // ─── TABLE ROWS (dynamic height per row) ────────────────────────
+    const rowH = 7;
+    const lineH = 4.5; // mm per line
     const maxRows = 12;
     const items = data.items || [];
     let curY = thY + thH;
+    const rowTops: number[] = []; // track top Y of each row for column dividers
 
     for (let i = 0; i < maxRows; i++) {
       const item: InvoiceItem | undefined = items[i];
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10.5);
 
+      // Calculate row height based on description line count
+      let descLines: string[] = [];
+      if (item?.description) {
+        descLines = item.description.split('\n').flatMap(l => doc.splitTextToSize(l, cDesc - 4));
+      }
+      const thisRowH = Math.max(rowH, descLines.length > 1 ? 4 + descLines.length * lineH : rowH);
+
+      rowTops.push(curY);
+
       if (item) {
         doc.text(`${i + 1}`, m + 2, curY + 5.5);
-        const descLines = (item.description || '').split('\n').flatMap(l => doc.splitTextToSize(l, cDesc - 4));
-        descLines.forEach((line, li) => doc.text(line, m + cSn + 2, curY + 5.5 + li * 4));
+        descLines.forEach((line, li) => doc.text(line, m + cSn + 2, curY + 5 + li * lineH));
         doc.text(String(item.qty ?? ''), m + cSn + cDesc + 2, curY + 5.5);
         doc.text(String(item.rate ?? ''), m + cSn + cDesc + cQty + 2, curY + 5.5);
         const amt = (Number(item.qty) || 0) * (Number(item.rate) || 0);
@@ -197,7 +207,7 @@ export class PdfService {
         doc.text(amt > 0 ? this.formatINR(amt) : '', m + iW - 2, curY + 5.5, { align: 'right' });
       }
 
-      curY += rowH;
+      curY += thisRowH;
     }
 
     // Draw full-height vertical column dividers spanning all item rows
@@ -217,24 +227,25 @@ export class PdfService {
     const csgt     = gstType === 'cgst_sgst' ? taxable * 0.09 : 0;
     const sgst     = gstType === 'cgst_sgst' ? taxable * 0.09 : 0;
     const igst     = gstType === 'igst'      ? taxable * 0.18 : 0;
-    const grand    = taxable + csgt + sgst + igst;
+    const grand    = Math.round(taxable + csgt + sgst + igst);
 
     // Column anchors reused for summary alignment
     const sumX      = m + cSn + cDesc;                    // left of Qty  (= 140mm) — main divider
     const rateAmtX  = m + cSn + cDesc + cQty + cRate;     // Rate/Amount divider (= 177mm)
 
-    // ─── HAMALI/HALT + TOTAL rows (right cols, above bank section) ───
+    // ─── HAMALI row (right cols only) ────────────────────────────────
     const aboveRows: { label: string; value: string; bold?: boolean }[] = [
       { label: 'Hamali/Halt', value: hamali > 0 ? this.formatINR(hamali) : '' },
-      { label: 'TOTAL',       value: subTotal > 0 ? this.formatINR(subTotal) : '', bold: true },
     ];
 
-    // Extend column dividers through these 2 rows — NO Qty/Rate divider here
-    const preRowsEndY = tableBodyEnd + aboveRows.length * rowH;
+    // Combined row: Weight + Loading Date (left) | TOTAL (right) — same Y as after Hamali
+    const combinedEnd = tableBodyEnd + aboveRows.length * rowH + rowH;
+
+    // Extend S.No, sumX, rateAmtX dividers through Hamali + combined row
     doc.setLineWidth(0.3);
-    doc.line(m + cSn,  tableBodyEnd, m + cSn,  preRowsEndY);
-    doc.line(sumX,     tableBodyEnd, sumX,     preRowsEndY);
-    doc.line(rateAmtX, tableBodyEnd, rateAmtX, preRowsEndY);
+    doc.line(m + cSn,  tableBodyEnd, m + cSn,  combinedEnd);
+    doc.line(sumX,     tableBodyEnd, sumX,     combinedEnd);
+    doc.line(rateAmtX, tableBodyEnd, rateAmtX, combinedEnd);
 
     // Top border of Hamali/Halt (only over right cols)
     doc.setLineWidth(0.5);
@@ -251,6 +262,29 @@ export class PdfService {
       sY += rowH;
     }
 
+    // ─── COMBINED ROW: Weight | Loading Date (left)  +  TOTAL (right) ─
+    const combY = sY; // = tableBodyEnd + 1*rowH
+    // Bottom line full width
+    doc.setLineWidth(0.5);
+    doc.line(m, combinedEnd, m + iW, combinedEnd);
+    // Left section: Weight (after S.No divider) + Loading Date (2cm gap)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('Wt (In Tons) :', m + cSn + 2, combY + 5.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(data.weight || '', m + cSn + 30, combY + 5.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Loading Date :', m + cSn + 2 + 40, combY + 5.5);
+    doc.setFont('helvetica', 'normal');
+    const rawLD = data.loadingDate || '';
+    const fmtLD = rawLD.includes('-') ? rawLD.split('-').reverse().join('/') : rawLD;
+    doc.text(fmtLD, m + cSn + 2 + 40 + 28, combY + 5.5);
+    // Right section: TOTAL
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.text('TOTAL', sumX + 2, combY + 5.5);
+    doc.text(taxable > 0 ? this.formatINR(taxable) : '', m + iW - 2, combY + 5.5, { align: 'right' });
+
     // ─── BANK DETAILS + CSGT/SGST/IGST/GRAND TOTAL side by side ────
     const bankRows: { label: string; value: string; bold?: boolean }[] = [
       { label: 'CSGT  9 %',  value: csgt > 0 ? this.formatINR(csgt) : '' },
@@ -259,7 +293,7 @@ export class PdfService {
       { label: 'Grand Total',value: grand > 0 ? this.formatINR(grand) : '', bold: true },
     ];
 
-    const footY    = preRowsEndY;
+    const footY    = combinedEnd;
     const bankH    = Math.max(bankRows.length * rowH, 32); // right side: 4×8=32; left needs ~32 for bank text
     const bankEndY = footY + bankH;
     const bankMidX = sumX; // vertical divider aligned with Qty column left edge
@@ -277,7 +311,7 @@ export class PdfService {
     doc.setFontSize(13);
     doc.text('BANK DETAILS', m + 4, footY + 7);
     doc.setLineWidth(0.4);
-    doc.line(m + 4, footY + 8, m + 28.5, footY + 8);
+    doc.line(m + 4, footY + 8, m + 38.5, footY + 8);
 
     const bL   = m + 4;
     const bCol = m + 24;  // colon alignment point

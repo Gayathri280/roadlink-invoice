@@ -174,11 +174,13 @@ export class InvoiceComponent implements OnInit {
       toName: '',
       toAddress: '',
       toGSTIN: '',
-      fromAddress: '6, Viswasapuram, Saravanampatti post, Coimbatore -641035',
+      fromAddress: '',
       companyGST: '33BEEPN3956H1ZF',
       items: [
         { description: '', qty: null, rate: null, amount: 0 }
       ],
+      weight: '',
+      loadingDate: '',
       hamaliHalt: null,
       gstType: 'igst'
     };

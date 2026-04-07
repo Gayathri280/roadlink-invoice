@@ -23,7 +23,7 @@ import { PdfService } from '../invoice/pdf.service';
       <div class="history-body">
         <div class="history-title-row">
           <h2>Invoice History</h2>
-          <input class="search-input" type="text" [(ngModel)]="searchQuery" placeholder="Search by invoice number or customer..." />
+          <input class="search-input" type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearch()" placeholder="Search by invoice no, customer or vehicle..." />
         </div>
 
         <div *ngIf="loading" class="state-msg">Loading...</div>
@@ -36,17 +36,19 @@ import { PdfService } from '../invoice/pdf.service';
               <th>Invoice No.</th>
               <th>Date</th>
               <th>Customer</th>
+              <th>Vehicle No.</th>
               <th>Grand Total</th>
               <th>Saved At</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let inv of filteredInvoices; let i = index">
-              <td>{{ i + 1 }}</td>
+            <tr *ngFor="let inv of pagedInvoices; let i = index">
+              <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
               <td>{{ inv.invoiceNo || '—' }}</td>
               <td>{{ inv.invoiceDate || '—' }}</td>
               <td>{{ inv.toName || '—' }}</td>
+              <td>{{ inv.vehicleNo || inv.data?.vehicleNo || '—' }}</td>
               <td>₹ {{ inv.grandTotal | number:'1.2-2' }}</td>
               <td>{{ inv.savedAt | date:'dd/MM/yyyy, h:mm a' }}</td>
               <td class="actions">
@@ -57,6 +59,15 @@ import { PdfService } from '../invoice/pdf.service';
             </tr>
           </tbody>
         </table>
+
+        <div *ngIf="!loading && totalPages > 1" class="pagination">
+          <button class="pg-btn" [disabled]="currentPage === 1" (click)="goToPage(1)">«</button>
+          <button class="pg-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">‹</button>
+          <button *ngFor="let p of pageNumbers" class="pg-btn" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
+          <button class="pg-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">›</button>
+          <button class="pg-btn" [disabled]="currentPage === totalPages" (click)="goToPage(totalPages)">»</button>
+          <span class="pg-info">Page {{ currentPage }} of {{ totalPages }} ({{ filteredInvoices.length }} records)</span>
+        </div>
       </div>
     </div>
   `,
@@ -125,20 +136,65 @@ import { PdfService } from '../invoice/pdf.service';
       padding: 5px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;
     }
     .btn-delete:hover { background: #c62828; }
+
+    .pagination {
+      display: flex; align-items: center; gap: 4px;
+      margin-top: 16px; justify-content: center; flex-wrap: wrap;
+    }
+    .pg-btn {
+      background: #fff; border: 1px solid #ccc; color: #1a237e;
+      padding: 6px 11px; border-radius: 4px; font-size: 13px;
+      cursor: pointer; min-width: 34px;
+    }
+    .pg-btn:hover:not([disabled]) { background: #e8eaf6; }
+    .pg-btn[disabled] { color: #bbb; cursor: default; }
+    .pg-btn.active { background: #1a237e; color: #fff; border-color: #1a237e; font-weight: 700; }
+    .pg-info { margin-left: 10px; font-size: 13px; color: #666; }
   `]
 })
 export class HistoryComponent implements OnInit {
   invoices: SavedInvoice[] = [];
   loading = true;
   searchQuery = '';
+  currentPage = 1;
+  readonly pageSize = 10;
 
   get filteredInvoices(): SavedInvoice[] {
     const q = this.searchQuery.trim().toLowerCase();
     if (!q) return this.invoices;
     return this.invoices.filter(inv =>
       (inv.invoiceNo || '').toLowerCase().includes(q) ||
-      (inv.toName || '').toLowerCase().includes(q)
+      (inv.toName || '').toLowerCase().includes(q) ||
+      (inv.vehicleNo || inv.data?.vehicleNo || '').toLowerCase().includes(q)
     );
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredInvoices.length / this.pageSize) || 1;
+  }
+
+  get pagedInvoices(): SavedInvoice[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredInvoices.slice(start, start + this.pageSize);
+  }
+
+  get pageNumbers(): number[] {
+    const total = this.totalPages;
+    const cur = this.currentPage;
+    const delta = 2;
+    const range: number[] = [];
+    for (let p = Math.max(1, cur - delta); p <= Math.min(total, cur + delta); p++) {
+      range.push(p);
+    }
+    return range;
+  }
+
+  goToPage(page: number): void {
+    this.currentPage = Math.max(1, Math.min(page, this.totalPages));
+  }
+
+  onSearch(): void {
+    this.currentPage = 1;
   }
 
   constructor(

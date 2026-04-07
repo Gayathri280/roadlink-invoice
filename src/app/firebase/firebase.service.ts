@@ -14,6 +14,7 @@ export interface SavedInvoice {
   invoiceNo: string;
   toName: string;
   invoiceDate: string;
+  vehicleNo: string;
   grandTotal: number;
   data: InvoiceData;
 }
@@ -34,6 +35,7 @@ export class FirebaseService {
       invoiceNo: invoiceData.invoiceNo || 'draft',
       toName: invoiceData.toName || '',
       invoiceDate: invoiceData.invoiceDate || '',
+      vehicleNo: invoiceData.vehicleNo || '',
       grandTotal,
       data: invoiceData
     };

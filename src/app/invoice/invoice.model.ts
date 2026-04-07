@@ -15,6 +15,8 @@ export interface InvoiceData {
   fromAddress: string;
   companyGST: string;
   items: InvoiceItem[];
+  weight: string;
+  loadingDate: string;
   hamaliHalt: number | null;
   gstType: 'cgst_sgst' | 'igst';
 }
