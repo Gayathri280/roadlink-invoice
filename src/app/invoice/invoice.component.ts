@@ -56,7 +56,7 @@ export class InvoiceComponent implements OnInit {
   }
 
   get grandTotal(): number {
-    return this.taxableAmount + this.csgt + this.sgst + this.igst;
+    return Math.round(this.taxableAmount + this.csgt + this.sgst + this.igst);
   }
 
   constructor(

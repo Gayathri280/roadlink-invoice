@@ -175,31 +175,67 @@ export class PdfService {
     doc.setLineWidth(0.5);
     doc.line(m, thY + thH, m + iW, thY + thH);
 
-    // ─── TABLE ROWS (dynamic height per row) ────────────────────────
-    const rowH = 7;
-    const lineH = 4.5; // mm per line
-    const maxRows = 12;
-    const items = data.items || [];
-    let curY = thY + thH;
-    const rowTops: number[] = []; // track top Y of each row for column dividers
+    // ─── TABLE ROWS ──────────────────────────────────────────────────
+    // The entire table section is always fixedTableH tall (so the rest of
+    // the PDF — bank details, words row — stays at a constant Y).
+    // Inside the fixed box, rows are sized dynamically: filled rows expand
+    // to fit multi-line descriptions; empty rows shrink/expand to fill the rest.
+    const fixedTableH = 92;  // always constant
+    const minEmptyH   = 4;   // empty row minimum
+    const rowH        = 7;   // filled row minimum (single-line)
+    const lineH       = 4.5; // mm per description line
+    const maxRows     = 12;
+    const items       = data.items || [];
 
+    // Step 1: compute ideal heights & description lines per row
+    const rowHeights: number[] = [];
+    const allDescLines: string[][] = [];
     for (let i = 0; i < maxRows; i++) {
-      const item: InvoiceItem | undefined = items[i];
+      const item = items[i];
+      if (item?.description) {
+        const lines: string[] = item.description.split('\n')
+          .flatMap(l => doc.splitTextToSize(l, cDesc - 4) as string[]);
+        allDescLines.push(lines);
+        rowHeights.push(Math.max(rowH, 4 + lines.length * lineH));
+      } else {
+        allDescLines.push([]);
+        rowHeights.push(item ? rowH : minEmptyH);
+      }
+    }
+
+    // Step 2: normalise so total = fixedTableH
+    const totalIdeal = rowHeights.reduce((a, b) => a + b, 0);
+    if (totalIdeal < fixedTableH) {
+      // Distribute extra space evenly among empty rows
+      const emptyIdx = rowHeights.map((_, i) => i).filter(i => !items[i]);
+      if (emptyIdx.length > 0) {
+        const add = (fixedTableH - totalIdeal) / emptyIdx.length;
+        emptyIdx.forEach(i => (rowHeights[i] += add));
+      }
+    } else if (totalIdeal > fixedTableH) {
+      // Scale everything down proportionally
+      const scale = fixedTableH / totalIdeal;
+      rowHeights.forEach((h, i) => (rowHeights[i] = h * scale));
+    }
+
+    // Step 3: draw rows
+    let curY = thY + thH;
+    const rowTops: number[] = [];
+    for (let i = 0; i < maxRows; i++) {
+      const item = items[i];
+      const thisRowH = rowHeights[i];
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10.5);
-
-      // Calculate row height based on description line count
-      let descLines: string[] = [];
-      if (item?.description) {
-        descLines = item.description.split('\n').flatMap(l => doc.splitTextToSize(l, cDesc - 4));
-      }
-      const thisRowH = Math.max(rowH, descLines.length > 1 ? 4 + descLines.length * lineH : rowH);
-
       rowTops.push(curY);
 
       if (item) {
+        const descLines = allDescLines[i];
+        // Use actual row height to derive line spacing so text never overflows
+        const rowLineH = descLines.length > 1
+          ? Math.min(lineH, (thisRowH - 5) / descLines.length)
+          : lineH;
         doc.text(`${i + 1}`, m + 2, curY + 5.5);
-        descLines.forEach((line, li) => doc.text(line, m + cSn + 2, curY + 5 + li * lineH));
+        descLines.forEach((line, li) => doc.text(line, m + cSn + 2, curY + 5 + li * rowLineH));
         doc.text(String(item.qty ?? ''), m + cSn + cDesc + 2, curY + 5.5);
         doc.text(String(item.rate ?? ''), m + cSn + cDesc + cQty + 2, curY + 5.5);
         const amt = (Number(item.qty) || 0) * (Number(item.rate) || 0);

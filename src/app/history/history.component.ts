@@ -49,12 +49,16 @@ import { PdfService } from '../invoice/pdf.service';
               <td>{{ inv.invoiceDate || '—' }}</td>
               <td>{{ inv.toName || '—' }}</td>
               <td>{{ inv.vehicleNo || inv.data?.vehicleNo || '—' }}</td>
-              <td>₹ {{ inv.grandTotal | number:'1.2-2' }}</td>
+              <td>₹ {{ roundTotal(inv.grandTotal) | number:'1.2-2' }}</td>
               <td>{{ inv.savedAt | date:'dd/MM/yyyy, h:mm a' }}</td>
               <td class="actions">
                 <button class="btn-preview" (click)="preview(inv)" title="Preview PDF">👁</button>
-                <button class="btn-download" (click)="redownload(inv)">Download PDF</button>
-                <button class="btn-delete" (click)="delete(inv)">Delete</button>
+                <button class="btn-download" (click)="redownload(inv)" title="Download PDF">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
+                <button class="btn-delete" (click)="delete(inv)" title="Delete">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -191,6 +195,10 @@ export class HistoryComponent implements OnInit {
 
   goToPage(page: number): void {
     this.currentPage = Math.max(1, Math.min(page, this.totalPages));
+  }
+
+  roundTotal(val: number): number {
+    return Math.round(val || 0);
   }
 
   onSearch(): void {
