@@ -76,6 +76,9 @@ export class InvoiceComponent implements OnInit {
     } else {
       const today = new Date();
       this.invoice.invoiceDate = today.toISOString().split('T')[0];
+      this.firebaseService.getLatestInvoiceNo()
+        .then(latest => { this.invoice.invoiceNo = this.generateNextInvoiceNo(latest); })
+        .catch(() => { this.invoice.invoiceNo = `1/${this.getCurrentFY()}`; });
     }
     this.firebaseService.getCustomerProfiles()
       .then(profiles => {
@@ -176,6 +179,25 @@ export class InvoiceComponent implements OnInit {
 
   goToReport(): void {
     this.router.navigate(['/report']);
+  }
+
+  private getCurrentFY(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    if (month >= 4) {
+      return `${year.toString().slice(2)}-${(year + 1).toString().slice(2)}`;
+    } else {
+      return `${(year - 1).toString().slice(2)}-${year.toString().slice(2)}`;
+    }
+  }
+
+  private generateNextInvoiceNo(latestNo: string | null): string {
+    const fy = this.getCurrentFY();
+    if (!latestNo) return `1/${fy}`;
+    const match = latestNo.match(/^(\d+)/);
+    if (!match) return `1/${fy}`;
+    return `${parseInt(match[1], 10) + 1}/${fy}`;
   }
 
   private emptyInvoice(): InvoiceData {

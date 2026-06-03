@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
-  getFirestore, collection, addDoc, query, orderBy,
+  getFirestore, collection, addDoc, query, orderBy, limit,
   onSnapshot, deleteDoc, doc, Firestore
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
@@ -60,6 +60,22 @@ export class FirebaseService {
   deleteInvoice(id: string): Promise<void> {
     const ref = doc(this.db, 'invoices', id);
     return deleteDoc(ref);
+  }
+
+  getLatestInvoiceNo(): Promise<string | null> {
+    const ref = collection(this.db, 'invoices');
+    const q = query(ref, orderBy('savedAt', 'desc'), limit(1));
+    return new Promise((resolve, reject) => {
+      const unsubscribe = onSnapshot(q,
+        snapshot => {
+          unsubscribe();
+          if (snapshot.empty) { resolve(null); return; }
+          const data = snapshot.docs[0].data() as SavedInvoice;
+          resolve(data.invoiceNo || null);
+        },
+        reject
+      );
+    });
   }
 
   getCustomerProfiles(): Promise<{ name: string; gstin: string; fromAddress: string; toAddress: string }[]> {
