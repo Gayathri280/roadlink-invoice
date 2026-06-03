@@ -67,8 +67,16 @@ export class InvoiceComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const today = new Date();
-    this.invoice.invoiceDate = today.toISOString().split('T')[0];
+    const editData = (history.state as { editData?: InvoiceData })?.editData;
+    if (editData) {
+      this.invoice = {
+        ...editData,
+        items: (editData.items || []).map((i: InvoiceItem) => ({ ...i }))
+      };
+    } else {
+      const today = new Date();
+      this.invoice.invoiceDate = today.toISOString().split('T')[0];
+    }
     this.firebaseService.getCustomerProfiles()
       .then(profiles => {
         this.customerProfiles = profiles;
